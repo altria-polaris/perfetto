@@ -23,6 +23,7 @@
 #include "perfetto/trace_processor/trace_blob_view.h"
 #include "src/trace_processor/importers/ftrace/extensions/example_aggregated_event.h"
 #include "src/trace_processor/importers/ftrace/extensions/ftrace_extension_registry.h"
+#include "src/trace_processor/importers/ftrace/extensions/out_of_order_parser.h"
 #include "src/trace_processor/importers/ftrace/ftrace_parser.h"
 #include "src/trace_processor/importers/ftrace/ftrace_tokenizer.h"
 #include "src/trace_processor/importers/ftrace/generic_ftrace_tracker.h"
@@ -49,6 +50,8 @@ FtraceModuleImpl::FtraceModuleImpl(ProtoImporterModuleContext* module_context,
       ftrace_extensions::FtraceExtensionRegistry::GetOrCreate(context);
   registry->Register(
       std::make_unique<ftrace_extensions::ExampleAggregatedEvent>());
+  registry->Register(std::make_unique<ftrace_extensions::EventBParser>());
+  registry->Register(std::make_unique<ftrace_extensions::EventAParser>());
 }
 
 ModuleResult FtraceModuleImpl::TokenizePacket(

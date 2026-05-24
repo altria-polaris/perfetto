@@ -38,6 +38,8 @@ source_set("full") {
     "extensions/ftrace_extension_parser.h",
     "extensions/ftrace_extension_registry.cc",
     "extensions/ftrace_extension_registry.h",
+    "extensions/out_of_order_parser.cc",
+    "extensions/out_of_order_parser.h",
     "ftrace_module_impl.cc",
     "ftrace_module_impl.h",
     "ftrace_parser.cc",
