@@ -26,9 +26,11 @@
 #include "perfetto/base/status.h"
 #include "perfetto/ext/base/status_macros.h"
 #include "perfetto/ext/base/status_or.h"
+#include "perfetto/ext/base/string_utils.h"
 #include "perfetto/protozero/field.h"
 #include "perfetto/protozero/proto_decoder.h"
 #include "perfetto/protozero/proto_utils.h"
+#include "perfetto/protozero/scattered_heap_buffer.h"
 #include "perfetto/public/compiler.h"
 #include "perfetto/trace_processor/basic_types.h"
 #include "perfetto/trace_processor/ref_counted.h"
@@ -36,6 +38,8 @@
 #include "src/trace_processor/importers/common/clock_tracker.h"
 #include "src/trace_processor/importers/common/metadata_tracker.h"
 #include "src/trace_processor/importers/common/parser_types.h"
+#include "src/trace_processor/importers/ftrace/extensions/ftrace_extension_parser.h"
+#include "src/trace_processor/importers/ftrace/extensions/ftrace_extension_registry.h"
 #include "src/trace_processor/importers/ftrace/generic_ftrace_tracker.h"
 #include "src/trace_processor/importers/proto/packet_sequence_state_generation.h"
 #include "src/trace_processor/importers/proto/proto_importer_module.h"
@@ -48,6 +52,7 @@
 
 #include "protos/perfetto/common/builtin_clock.pbzero.h"
 #include "protos/perfetto/trace/ftrace/cpm_trace.pbzero.h"
+#include "protos/perfetto/trace/ftrace/ftrace.pbzero.h"
 #include "protos/perfetto/trace/ftrace/ftrace_event.pbzero.h"
 #include "protos/perfetto/trace/ftrace/ftrace_event_bundle.pbzero.h"
 #include "protos/perfetto/trace/ftrace/fwtp_ftrace.pbzero.h"
@@ -299,6 +304,12 @@ void FtraceTokenizer::TokenizeFtraceEvent(
           protos::pbzero::FtraceEvent::kFwtpPerfettoSliceFieldNumber)) {
     TokenizeFtraceFwtpPerfettoSlice(cpu, std::move(event), std::move(state));
     return;
+  }
+  if (GenericFtraceTracker::IsGenericFtraceEvent(
+          static_cast<uint32_t>(event_id))) {
+    if (TryTokenizeUnknownGroupEvent(cpu, event, state)) {
+      return;
+    }
   }
 
   std::optional<int64_t> timestamp = context_->clock_tracker->ToTraceTime(
@@ -636,6 +647,60 @@ std::optional<protozero::Field> FtraceTokenizer::GetFtraceEventField(
     return std::nullopt;
   }
   return ts_field;
+}
+
+bool FtraceTokenizer::TryTokenizeUnknownGroupEvent(
+    uint32_t cpu,
+    const TraceBlobView& event,
+    RefPtr<PacketSequenceStateGeneration> state) {
+  using namespace ftrace_extensions;
+
+  // Decode fields from the generic event
+  std::vector<DecodedField> decoded_fields;
+  StringId event_name_id;
+  if (!FtraceExtensionRegistry::DecodeFields(event, context_, generic_tracker_,
+                                             &decoded_fields, &event_name_id)) {
+    return false;
+  }
+
+  base::StringView event_name = context_->storage->GetString(event_name_id);
+
+  // Find a parser for this event name
+  auto* registry = FtraceExtensionRegistry::GetOrCreate(context_);
+  auto* parser = registry->Find(event_name);
+  if (!parser) {
+    return false;
+  }
+
+  // Extract pid from FtraceEvent header
+  uint32_t pid = 0;
+  protozero::ProtoDecoder ftrace_decoder(event.data(), event.length());
+  if (auto pid_field = ftrace_decoder.FindField(
+          protos::pbzero::FtraceEvent::kPidFieldNumber)) {
+    pid = pid_field.as_uint32();
+  }
+
+  // Build the parser context
+  ParserContext ctx{};
+  ctx.context = context_;
+  ctx.cpu = cpu;
+  ctx.sequence_state = state;
+  ctx.decoded_fields = std::move(decoded_fields);
+  ctx.event_name = event_name_id;
+  ctx.pid = pid;
+
+  // Parse the event and push synthesized events to the sorter
+  auto events = parser->Parse(ctx);
+  for (auto& synthesized : events) {
+    TraceBlob blob = TraceBlob::CopyFrom(synthesized.ftrace_event_bytes.data(),
+                                         synthesized.ftrace_event_bytes.size());
+    TraceBlobView blob_view(std::move(blob));
+    module_context_->PushFtraceEvent(
+        cpu, synthesized.timestamp_ns,
+        TracePacketData{std::move(blob_view), state});
+  }
+
+  return true;
 }
 
 }  // namespace perfetto::trace_processor

@@ -157,6 +157,9 @@ class TraceProcessorContext {
   GlobalPtr<StackProfileTracker> stack_profile_tracker;
   GlobalPtr<Destructible> deobfuscation_tracker;  // DeobfuscationTracker
   GlobalPtr<BlobPacketWriter> blob_packet_writer;
+  // Ftrace extension registry - owned pointer, initialized lazily.
+  // Use FtraceExtensionRegistry::GetOrCreate() to access.
+  void* ftrace_extension_registry = nullptr;
 
   // The registration function for additional proto modules.
   // This is populated by TraceProcessorImpl to allow for late registration of

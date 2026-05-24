@@ -17,13 +17,9 @@
 #ifndef SRC_TRACE_PROCESSOR_IMPORTERS_FTRACE_FTRACE_TOKENIZER_H_
 #define SRC_TRACE_PROCESSOR_IMPORTERS_FTRACE_FTRACE_TOKENIZER_H_
 
-#include <atomic>
 #include <cstdint>
-#include <optional>
 #include <vector>
 
-#include "perfetto/base/compiler.h"
-#include "perfetto/base/logging.h"
 #include "perfetto/base/status.h"
 #include "perfetto/ext/base/status_or.h"
 #include "perfetto/protozero/field.h"
@@ -49,32 +45,40 @@ class FtraceTokenizer {
         generic_tracker_(generic_tracker) {
     base::ignore_result(module_context_);
   }
-
   base::Status TokenizeFtraceBundle(TraceBlobView bundle,
-                                    RefPtr<PacketSequenceStateGeneration>,
+                                    RefPtr<PacketSequenceStateGeneration> state,
                                     uint32_t packet_sequence_id);
 
- private:
   void TokenizeFtraceEvent(uint32_t cpu,
-                           ClockTracker::ClockId,
+                           ClockTracker::ClockId clock_id,
                            TraceBlobView event,
                            RefPtr<PacketSequenceStateGeneration> state);
+
   void TokenizeFtraceCompactSched(uint32_t cpu,
-                                  ClockTracker::ClockId,
-                                  protozero::ConstBytes);
+                                  ClockTracker::ClockId clock_id,
+                                  protozero::ConstBytes packet);
+
   void TokenizeFtraceCompactSchedSwitch(
       uint32_t cpu,
-      ClockTracker::ClockId,
+      ClockTracker::ClockId clock_id,
       const protos::pbzero::FtraceEventBundle::CompactSched::Decoder& compact,
       const std::vector<StringId>& string_table);
+
   void TokenizeFtraceCompactSchedWaking(
       uint32_t cpu,
-      ClockTracker::ClockId,
+      ClockTracker::ClockId clock_id,
       const protos::pbzero::FtraceEventBundle::CompactSched::Decoder& compact,
       const std::vector<StringId>& string_table);
+
   base::StatusOr<ClockTracker::ClockId> HandleFtraceClockSnapshot(
       protos::pbzero::FtraceEventBundle::Decoder& decoder,
       uint32_t packet_sequence_id);
+
+  void TokenizeFtraceAdrenoCmdbatchSubmitted(
+      uint32_t cpu,
+      ClockTracker::ClockId clock_id,
+      TraceBlobView event,
+      RefPtr<PacketSequenceStateGeneration> state);
   void TokenizeFtraceGpuWorkPeriod(uint32_t cpu,
                                    TraceBlobView event,
                                    RefPtr<PacketSequenceStateGeneration> state);
@@ -94,6 +98,12 @@ class FtraceTokenizer {
       uint32_t cpu,
       TraceBlobView event,
       RefPtr<PacketSequenceStateGeneration> state);
+
+  bool TryTokenizeUnknownGroupEvent(
+      uint32_t cpu,
+      const TraceBlobView& event,
+      RefPtr<PacketSequenceStateGeneration> state);
+
   std::optional<protozero::Field> GetFtraceEventField(
       uint32_t event_id,
       const TraceBlobView& event);
