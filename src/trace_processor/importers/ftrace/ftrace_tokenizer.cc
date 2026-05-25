@@ -305,13 +305,6 @@ void FtraceTokenizer::TokenizeFtraceEvent(
     TokenizeFtraceFwtpPerfettoSlice(cpu, std::move(event), std::move(state));
     return;
   }
-  if (GenericFtraceTracker::IsGenericFtraceEvent(
-          static_cast<uint32_t>(event_id))) {
-    if (TryTokenizeUnknownGroupEvent(cpu, event, state)) {
-      return;
-    }
-  }
-
   std::optional<int64_t> timestamp = context_->clock_tracker->ToTraceTime(
       clock_id, static_cast<int64_t>(raw_timestamp));
   // ClockTracker will increment some error stats if it failed to convert the
@@ -319,6 +312,14 @@ void FtraceTokenizer::TokenizeFtraceEvent(
   if (!timestamp.has_value()) {
     return;
   }
+
+  if (GenericFtraceTracker::IsGenericFtraceEvent(
+          static_cast<uint32_t>(event_id))) {
+    if (TryTokenizeUnknownGroupEvent(cpu, *timestamp, event, state)) {
+      return;
+    }
+  }
+
   module_context_->PushFtraceEvent(
       cpu, *timestamp, TracePacketData{std::move(event), std::move(state)});
 }
@@ -651,6 +652,7 @@ std::optional<protozero::Field> FtraceTokenizer::GetFtraceEventField(
 
 bool FtraceTokenizer::TryTokenizeUnknownGroupEvent(
     uint32_t cpu,
+    int64_t timestamp,
     const TraceBlobView& event,
     RefPtr<PacketSequenceStateGeneration> state) {
   using namespace ftrace_extensions;
@@ -688,6 +690,7 @@ bool FtraceTokenizer::TryTokenizeUnknownGroupEvent(
   ctx.decoded_fields = std::move(decoded_fields);
   ctx.event_name = event_name_id;
   ctx.pid = pid;
+  ctx.timestamp = timestamp;
 
   // Parse the event and push synthesized events to the sorter
   auto events = parser->Parse(ctx);

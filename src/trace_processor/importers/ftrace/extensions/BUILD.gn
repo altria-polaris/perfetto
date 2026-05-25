@@ -22,6 +22,8 @@ source_set("extensions") {
     "ftrace_extension_parser.h",
     "ftrace_extension_registry.cc",
     "ftrace_extension_registry.h",
+    "my_tracing_mark_write_parser.cc",
+    "my_tracing_mark_write_parser.h",
     "out_of_order_parser.cc",
     "out_of_order_parser.h",
   ]

@@ -15796,6 +15796,7 @@ filegroup {
         "src/trace_processor/importers/ftrace/extensions/example_aggregated_event.cc",
         "src/trace_processor/importers/ftrace/extensions/ftrace_extension_parser.cc",
         "src/trace_processor/importers/ftrace/extensions/ftrace_extension_registry.cc",
+        "src/trace_processor/importers/ftrace/extensions/my_tracing_mark_write_parser.cc",
         "src/trace_processor/importers/ftrace/extensions/out_of_order_parser.cc",
         "src/trace_processor/importers/ftrace/ftrace_module_impl.cc",
         "src/trace_processor/importers/ftrace/ftrace_parser.cc",

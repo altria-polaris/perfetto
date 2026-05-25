@@ -2501,6 +2501,8 @@ perfetto_filegroup(
         "src/trace_processor/importers/ftrace/extensions/ftrace_extension_parser.h",
         "src/trace_processor/importers/ftrace/extensions/ftrace_extension_registry.cc",
         "src/trace_processor/importers/ftrace/extensions/ftrace_extension_registry.h",
+        "src/trace_processor/importers/ftrace/extensions/my_tracing_mark_write_parser.cc",
+        "src/trace_processor/importers/ftrace/extensions/my_tracing_mark_write_parser.h",
         "src/trace_processor/importers/ftrace/extensions/out_of_order_parser.cc",
         "src/trace_processor/importers/ftrace/extensions/out_of_order_parser.h",
         "src/trace_processor/importers/ftrace/ftrace_module_impl.cc",

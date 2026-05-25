@@ -76,6 +76,7 @@ struct ParserContext {
   std::vector<DecodedField> decoded_fields;
   StringId event_name = kNullStringId;
   uint32_t pid = 0;
+  int64_t timestamp = 0;
 };
 
 // Base class for custom ftrace event parsers.

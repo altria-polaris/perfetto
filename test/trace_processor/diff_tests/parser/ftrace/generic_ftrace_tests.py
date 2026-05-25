@@ -13,12 +13,30 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from python.generators.diff_tests.testing import Csv, DataPath
+from python.generators.diff_tests.testing import Csv, DataPath, Path
 from python.generators.diff_tests.testing import DiffTestBlueprint
 from python.generators.diff_tests.testing import TestSuite
 
 
 class GenericFtrace(TestSuite):
+
+  def test_my_tracing_mark_write(self):
+    return DiffTestBlueprint(
+        trace=Path('my_tracing_mark_write_test.py'),
+        query="""
+        SELECT ts, dur, name
+        FROM slice
+        UNION ALL
+        SELECT ts, NULL as dur, name || ': ' || CAST(value AS INT) as name
+        FROM counter
+        JOIN counter_track ON counter.track_id = counter_track.id
+        ORDER BY ts ASC;
+        """,
+        out=Csv("""
+        "ts","dur","name"
+        10000000,20000000,"my_slice"
+        20000000,"[NULL]","my_counter: -2"
+        """))
 
   # Trace collected with |denser_generic_event_encoding|, containing two
   # generic events.

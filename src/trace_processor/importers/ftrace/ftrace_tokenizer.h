@@ -101,6 +101,7 @@ class FtraceTokenizer {
 
   bool TryTokenizeUnknownGroupEvent(
       uint32_t cpu,
+      int64_t timestamp,
       const TraceBlobView& event,
       RefPtr<PacketSequenceStateGeneration> state);
 
