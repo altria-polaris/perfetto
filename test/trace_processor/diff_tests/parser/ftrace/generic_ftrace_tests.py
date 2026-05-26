@@ -38,6 +38,24 @@ class GenericFtrace(TestSuite):
         20000000,"[NULL]","my_counter: -2"
         """))
 
+  def test_my_legacy_tracing_mark_write(self):
+    return DiffTestBlueprint(
+        trace=Path('my_legacy_tracing_mark_write_test.py'),
+        query="""
+        SELECT ts, dur, name
+        FROM slice
+        UNION ALL
+        SELECT ts, NULL as dur, name || ': ' || CAST(value AS INT) as name
+        FROM counter
+        JOIN counter_track ON counter.track_id = counter_track.id
+        ORDER BY ts ASC;
+        """,
+        out=Csv("""
+        "ts","dur","name"
+        10000000,20000000,"my_slice"
+        20000000,"[NULL]","my_counter: -2"
+        """))
+
   # Trace collected with |denser_generic_event_encoding|, containing two
   # generic events.
   def test_(self):

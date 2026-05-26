@@ -314,7 +314,8 @@ void FtraceTokenizer::TokenizeFtraceEvent(
   }
 
   if (GenericFtraceTracker::IsGenericFtraceEvent(
-          static_cast<uint32_t>(event_id))) {
+          static_cast<uint32_t>(event_id)) ||
+      event_id == protos::pbzero::FtraceEvent::kGenericFieldNumber) {
     if (TryTokenizeUnknownGroupEvent(cpu, *timestamp, event, state)) {
       return;
     }

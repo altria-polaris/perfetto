@@ -15,6 +15,7 @@
 
 #include "perfetto/protozero/proto_decoder.h"
 #include "protos/perfetto/trace/ftrace/ftrace_event.pbzero.h"
+#include "protos/perfetto/trace/ftrace/generic.pbzero.h"
 #include "src/trace_processor/importers/ftrace/generic_ftrace_tracker.h"
 #include "src/trace_processor/types/trace_processor_context.h"
 
@@ -63,6 +64,40 @@ bool FtraceExtensionRegistry::DecodeFields(
   }
   if (event_id == 0)
     return false;
+
+  if (event_id == protos::pbzero::FtraceEvent::kGenericFieldNumber) {
+    auto payload_fld = ftrace_decoder.FindField(event_id);
+    if (!payload_fld)
+      return false;
+
+    protos::pbzero::GenericFtraceEvent::Decoder gen_decoder(payload_fld.data(),
+                                                            payload_fld.size());
+    *out_event_name = context->storage->InternString(gen_decoder.event_name());
+
+    uint32_t next_field_id = 1;
+    for (auto it = gen_decoder.field(); it; ++it) {
+      protos::pbzero::GenericFtraceEvent::Field::Decoder fld(*it);
+      DecodedField df;
+      df.field_id = next_field_id++;
+      df.name = context->storage->GetString(
+          context->storage->InternString(fld.name()));
+      if (fld.has_int_value()) {
+        df.type = DecodedField::Type::kInt64;
+        df.int64_val = fld.int_value();
+      } else if (fld.has_uint_value()) {
+        df.type = DecodedField::Type::kUint64;
+        df.uint64_val = fld.uint_value();
+      } else if (fld.has_str_value()) {
+        df.type = DecodedField::Type::kString;
+        auto str = fld.str_value();
+        df.string_val = base::StringView(str.data, str.size);
+      } else {
+        continue;
+      }
+      out_fields->push_back(df);
+    }
+    return true;
+  }
 
   // 2. Get the descriptor from GenericFtraceTracker
   auto* descriptor = generic_tracker->GetEvent(event_id);

@@ -71,7 +71,10 @@ src/trace_processor/
 
 Used to handle generic ftrace events (like `example` or the original `ggo`) where the field IDs change across different Android versions but the event name remains constant.
 
-See: [ftrace-extension-framework.md](./ftrace-extension-framework.md)
+See:
+- [ftrace-extension-framework.md](./ftrace-extension-framework.md) (架構與設計說明)
+- [execution-workflow.md](./execution-workflow.md) (執行步驟、問題解決與自訂事件用途整理)
+- [legacy-generic-ftrace-investigation.md](./legacy-generic-ftrace-investigation.md) (Android 16 舊版本 Generic Ftrace Extension 解析失敗調查與解決方案)
 
 ## Common Issues & Troubleshooting
 
